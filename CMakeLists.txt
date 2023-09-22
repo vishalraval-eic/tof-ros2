@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.5)
 project(tof_ros2cpp)
 
-list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib;/opt/glog;/opt/protobuf;/opt/websockets")
-list(APPEND AMENT_PREFIX_PATH "/usr/local;/opt/glog;/opt/protobuf;/opt/websockets")
-set(CMAKE_INSTALL_RPATH "/usr/local/lib;/opt/glog/lib;/opt/websockets/lib")
+list(APPEND CMAKE_PREFIX_PATH "/usr/local/lib;/opt/glog;/opt/protobuf;/opt/websockets;/home/orin-nano/ToF_Workspace/libs")
+list(APPEND AMENT_PREFIX_PATH "/usr/local;/opt/glog;/opt/protobuf;/opt/websockets;/home/orin-nano/ToF_Workspace/libs;")
+set(CMAKE_INSTALL_RPATH "/usr/local/lib;/opt/glog/lib;/opt/websockets/lib;/home/orin-nano/ToF_Workspace/libs;")
+
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -33,7 +34,12 @@ endif()
 
 find_library(TOFI_COMPUTE
   NAMES tofi_compute
-  PATHS /usr/lib)
+  PATHS /home/home/orin-nano/ToF_Workspace/libs)
+
+find_library(TOFI_CONFIG
+  NAMES tofi_config
+  PATHS /home/orin-nano/ToF_Workspace/libs )
+
 
 if(UNIX)
     set(CMAKE_POSITION_INDEPENDENT_CODE "1")
@@ -53,8 +59,8 @@ target_sources(tof_ros2cpp_node INTERFACE ${CMAKE_SOURCE_DIR}/include/tof_ros2cp
 ament_target_dependencies(tof_ros2cpp_node rclcpp std_msgs glog sensor_msgs)
 
 target_link_libraries(tof_ros2cpp_node websockets_shared)
-target_link_libraries(tof_ros2cpp_node tofi_compute)
-target_link_libraries(tof_ros2cpp_node tofi_config)
+target_link_libraries(tof_ros2cpp  /home/orin-nano/ToF_Workspace/libs/libtofi_compute.so)
+target_link_libraries(tof_ros2cpp  /home/orin-nano/ToF_Workspace/libs/libtofi_config.so)
 target_link_libraries(tof_ros2cpp_node glog::glog)
 target_link_libraries(tof_ros2cpp_node aditof)
 target_include_directories(tof_ros2cpp_node PUBLIC "${ADITOF_INCLUDE_DIRS}")
