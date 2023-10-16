@@ -30,17 +30,23 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "aditof_utils.h"
+
 #include <aditof/system.h>
-#include <regex>
 #include <string.h>
 #include <unistd.h>
+
 #include <rclcpp/rclcpp.hpp>
+#include <regex>
 
 std::mutex mtx_dynamic_rec;
 using namespace aditof;
 
 std::string * parseArgs(int argc, char ** argv)
 {
+  // pos 0 - ip
+  // pos 1 - config_path
+  // pos 2 - mode
+
   google::InitGoogleLogging(argv[0]);
   FLAGS_alsologtostderr = 1;
   std::string ip = "";
@@ -76,7 +82,9 @@ std::string * parseArgs(int argc, char ** argv)
   }
 
   std::string * result = new std::string[5];
-  result[0] = std::string("ip:") + ip;
+  if (!ip.empty()) {
+    result[0] = std::string("ip:") + ip;
+  }
   result[1] = config_path;
   result[2] = mode;
 

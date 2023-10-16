@@ -39,6 +39,7 @@
 #include <memory>  // Dynamic memory management
 #include <rclcpp/rclcpp.hpp>
 #include <string>  // String functions
+#include <thread>
 
 #include "aditof/camera.h"
 #include "aditof/system.h"
@@ -49,6 +50,7 @@
 using namespace std::chrono_literals;
 using namespace aditof;
 bool m_streamOnFlag = false;
+static rclcpp::Time m_frameTimeStamp;
 
 // Create the node class named MinimalPublisher which inherits the attributes
 // and methods of the rclcpp::Node class.
@@ -75,7 +77,7 @@ private:
     // Stream off //temporary solution, replace if we can modify during runtime of the camera
 
     stopCamera(camera);
-    m_streamOnFlag = 0;
+    m_streamOnFlag = false;
 
     control_adsd3500SetABinvalidationThreshold(
       camera, get_parameter("adsd3500ABinvalidationThreshold").as_int());
@@ -90,7 +92,7 @@ private:
       camera, get_parameter("adsd3500RadialThresholdMax").as_int());
 
     startCamera(camera);
-    m_streamOnFlag = 1;
+    m_streamOnFlag = true;
 
     rcl_interfaces::msg::SetParametersResult result;
     result.successful = true;
@@ -99,15 +101,6 @@ private:
     return result;
   }
 
-  void timer_callback()
-  {
-    if (m_streamOnFlag) {
-      getNewFrame(camera, frame);
-      rclcpp::Time TimeStamp = this->get_clock()->now();
-      publishers.updatePublishers(camera, frame, TimeStamp);
-    }
-  }
-  rclcpp::TimerBase::SharedPtr timer_;
   OnSetParametersCallbackHandle::SharedPtr callback_handle_;
 
 public:
@@ -139,9 +132,17 @@ public:
     publishers.createNew(
       this, camera, frame, (arguments[2] == "true" || arguments[2] == "1") ? true : false);
 
-    timer_ = this->create_wall_timer(100ms, std::bind(&TofNode::timer_callback, this));
     callback_handle_ = this->add_on_set_parameters_callback(
       std::bind(&TofNode::parameterCallback, this, std::placeholders::_1));
+
+    publishers.startThreads(camera, frame);
+  }
+
+  void service_callback()
+  {
+    if (m_streamOnFlag) {
+      getNewFrame(camera, frame);
+    }
   }
 };
 
@@ -149,10 +150,6 @@ int main(int argc, char * argv[])
 {
   // Initialize ROS 2
   rclcpp::init(argc, argv);
-
-  // pos 0 - ip
-  // pos 1 - config_path
-  // pos 2 - mode
 
   std::string * arguments = parseArgs(argc, argv);
   // find camera (local/usb/network), set config file and initialize the camera
@@ -185,8 +182,13 @@ int main(int argc, char * argv[])
   auto tmp = new Frame;
   aditof::Frame ** frame = &tmp;
 
-  // Start processing data from the node as well as the callbacks and the timer
-  rclcpp::spin(std::make_shared<TofNode>(arguments, camera, frame));
+  // Create ToF Node
+  std::shared_ptr<TofNode> tof_node = std::make_shared<TofNode>(arguments, camera, frame);
+
+  while (rclcpp::ok()) {
+    tof_node->service_callback();
+    rclcpp::spin_some(tof_node);
+  }
 
   // Shutdown the node when finished
   rclcpp::shutdown();
