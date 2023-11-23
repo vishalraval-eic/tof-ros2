@@ -29,49 +29,49 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef PUBLISHER_FACTORY_H
-#define PUBLISHER_FACTORY_H
+#ifndef CAMERAINFO_MSG_H
+#define CAMERAINFO_MSG_H
 
-#include <aditof_sensor_msg.h>
-#include <aditof_utils.h>
-#include <confImage_msg.h>
-#include <depthImage_msg.h>
-#include <irImage_msg.h>
-#include <rawImage_msg.h>
-#include <xyzImage_msg.h>
-#include <cameraInfo_msg.h>
+#include <boost/array.hpp>
+#include <string>
 
-#include <memory>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <typeinfo>
-#include <vector>
+#include <aditof/frame.h>
 
-#include "aditof/camera.h"
+#ifndef JS_BINDINGS
+#include <glog/logging.h>
+#else
+#include <aditof/log_cout.h>
+#endif
 
-class PublisherFactory
-{
-public:
-  PublisherFactory();
-  void createNew(
-    rclcpp::Node * node, const std::shared_ptr<aditof::Camera> & camera, aditof::Frame ** frame,
-    bool enableDepthCompute);
-  void updatePublishers(
-    const std::shared_ptr<aditof::Camera> & camera, aditof::Frame ** frame,
-    rclcpp ::Time timestamp);
-  void deletePublishers(const std::shared_ptr<aditof::Camera> & camera);
-  void setDepthFormat(const int val);
+#include "aditof_sensor_msg.h"
+#include "aditof_utils.h"
 
-private:
-  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> img_publishers;
-  std::vector<std::shared_ptr<AditofSensorMsg>> imgMsgs;
+#include "sensor_msgs/msg/camera_info.hpp"
 
-  std::vector<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr> pointCloud_publisher;
-  std::vector<std::shared_ptr<AditofSensorPointCloudMsg>> pointCloudMsgs;
 
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoPublisher;
-  std::shared_ptr<CameraInfoMsg> cameraInfoMsg;
+class CameraInfoMsg {
+  public:
+    CameraInfoMsg(const std::shared_ptr<aditof::Camera> &camera);
+    /**
+     * @brief Each message corresponds to one frame
+     */
+    sensor_msgs::msg::CameraInfo msg;
 
+    /**
+     * @brief Converts the frame data to a message
+     */
+    void FrameDataToMsg(const std::shared_ptr<aditof::Camera> &camera,
+                        aditof::Frame **frame, rclcpp::Time tStamp);
+    /**
+     * @brief Assigns values to the message fields
+     */
+    void setMembers(const std::shared_ptr<aditof::Camera> &camera, int width,
+                    int height, rclcpp::Time tStamp);
+
+    sensor_msgs::msg::CameraInfo getMessage() {return msg;}
+
+  private:
+    CameraInfoMsg();
 };
 
-#endif  // PUBLISHER_FACTORY_H
+#endif // CAMERAINFO_MSG_H

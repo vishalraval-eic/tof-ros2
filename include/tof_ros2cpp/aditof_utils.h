@@ -45,7 +45,11 @@ enum class ModeTypes
   mode0,
   mode1,
   mode2,
-  mode3
+  mode3,
+  mode4,
+  mode5,
+  mode6
+
 };
 typedef void (*FnPtr)(std::shared_ptr<aditof::Camera> &, int);
 

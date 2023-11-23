@@ -29,49 +29,41 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef PUBLISHER_FACTORY_H
-#define PUBLISHER_FACTORY_H
+#include "cameraInfo_msg.h"
 
-#include <aditof_sensor_msg.h>
-#include <aditof_utils.h>
-#include <confImage_msg.h>
-#include <depthImage_msg.h>
-#include <irImage_msg.h>
-#include <rawImage_msg.h>
-#include <xyzImage_msg.h>
-#include <cameraInfo_msg.h>
+using namespace aditof;
 
-#include <memory>
-#include <rclcpp/rclcpp.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
-#include <typeinfo>
-#include <vector>
+CameraInfoMsg::CameraInfoMsg() {}
 
-#include "aditof/camera.h"
+CameraInfoMsg::CameraInfoMsg(const std::shared_ptr<aditof::Camera> &camera) {
 
-class PublisherFactory
-{
-public:
-  PublisherFactory();
-  void createNew(
-    rclcpp::Node * node, const std::shared_ptr<aditof::Camera> & camera, aditof::Frame ** frame,
-    bool enableDepthCompute);
-  void updatePublishers(
-    const std::shared_ptr<aditof::Camera> & camera, aditof::Frame ** frame,
-    rclcpp ::Time timestamp);
-  void deletePublishers(const std::shared_ptr<aditof::Camera> & camera);
-  void setDepthFormat(const int val);
+}
 
-private:
-  std::vector<rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr> img_publishers;
-  std::vector<std::shared_ptr<AditofSensorMsg>> imgMsgs;
+void CameraInfoMsg::FrameDataToMsg(const std::shared_ptr<Camera> &camera,
+                                   aditof::Frame **frame, rclcpp::Time tStamp) {
+    FrameDetails fDetails;
+    (*frame)->getDetails(fDetails);
 
-  std::vector<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr> pointCloud_publisher;
-  std::vector<std::shared_ptr<AditofSensorPointCloudMsg>> pointCloudMsgs;
+    setMembers(camera, fDetails.width, fDetails.height, tStamp);
+}
 
-  rclcpp::Publisher<sensor_msgs::msg::CameraInfo>::SharedPtr cameraInfoPublisher;
-  std::shared_ptr<CameraInfoMsg> cameraInfoMsg;
+void CameraInfoMsg::setMembers(const std::shared_ptr<Camera> &camera, int width,
+                               int height, rclcpp::Time tStamp) {
+    msg.header.stamp = tStamp;
+    msg.header.frame_id = "aditof_camera_info";
 
-};
+    msg.width = width;
+    msg.height = height;
+    msg.distortion_model = "plumb_bob";
 
-#endif  // PUBLISHER_FACTORY_H
+    aditof::IntrinsicParameters intr = getIntrinsics(camera);
+
+    msg.d = {intr.k1, intr.k2, intr.p1, intr.p2,
+             intr.k3, intr.k4, intr.k5, intr.k6};
+    msg.k = {intr.fx / 2, 0.0, intr.cx / 2, 0.0, intr.fy / 2,
+             intr.cy / 2, 0.0, 0.0,         1.0};
+    msg.r = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+    msg.p = {msg.k[0], msg.k[1], msg.k[2], 0.0f,     msg.k[3], msg.k[4],
+             msg.k[5], 0.0f,     msg.k[6], msg.k[7], msg.k[8], 0.0f};
+
+}

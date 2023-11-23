@@ -44,10 +44,11 @@ void DepthImageMsg::FrameDataToMsg(
   const std::shared_ptr<Camera> & camera, aditof::Frame ** frame, rclcpp::Time tStamp)
 {
   FrameDetails fDetails;
-  (*frame)->getDetails(fDetails);
+ (*frame)->getDetails(fDetails);
 
   setMetadataMembers(fDetails.width, fDetails.height, tStamp);
 
+ //setMetadataMembers(512, 512, tStamp);
   uint16_t * frameData = getFrameData(frame, "depth");
 
   if (!frameData) {
@@ -82,6 +83,11 @@ void DepthImageMsg::setDataMembers(const std::shared_ptr<Camera> & camera, uint1
     dataToRGBA8(0, 0x0fff, frameData);
   } else if (message.encoding.compare(sensor_msgs::image_encodings::MONO16) == 0) {
     memcpy(message.data.data(), frameData, 2 * message.width * message.height);
+  // irTo16bitGrayscale(frameData, message.width, message.height);
+  //  uint8_t * msgDataPtr = message.data.data();
+  //  memcpy(msgDataPtr, frameData, message.step * message.height);
+
+ 
   } else
     LOG(ERROR) << "Image encoding invalid or not available";
 }
