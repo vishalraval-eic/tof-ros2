@@ -78,8 +78,22 @@ install(DIRECTORY
 
 ## Copying config files and depth compute libraries from sdk/config, sdk/lib folders to build/examples/first-frame and build/first-frame/Debug or Release folders
 FILE(GLOB CONFIG_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tof_config/*)
-install(FILES ${CONFIG_FILES} DESTINATION lib/../../../config/)
-install(FILES ${CONFIG_FILES} DESTINATION lib/${PROJECT_NAME}/config/)
+FILE(GLOB JSON_FILES ${CMAKE_CURRENT_SOURCE_DIR}/tof_config/*.json)
+#install(FILES ${CONFIG_FILES} DESTINATION lib/../../../config/)
+install(FILES ${CONFIG_FILES} DESTINATION share/${PROJECT_NAME}/config/)
+# Install command to modify JSON files during installation
+install(CODE "
+    # Get the list of JSON files
+    set(JSON_FILES \"${JSON_FILES}\")
+
+    message(STATUS \"JSON Files in install: \${JSON_FILES}\")
+    foreach(JSON_FILE \${JSON_FILES})
+        get_filename_component(FILENAME \${JSON_FILE} NAME)
+        file(READ \${JSON_FILE} JSON_CONTENT)
+        string(REPLACE \"./config\" \"${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config\" MODIFIED_JSON_CONTENT \"\${JSON_CONTENT}\")
+        file(WRITE  \"${CMAKE_INSTALL_PREFIX}/share/${PROJECT_NAME}/config/\${FILENAME}\" \"\${MODIFIED_JSON_CONTENT}\")
+        message(STATUS \"Updated: \${JSON_FILE}\n\${MODIFIED_JSON_CONTENT}\")
+    endforeach()
+")
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 ament_package()
-
