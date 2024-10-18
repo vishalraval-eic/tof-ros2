@@ -193,12 +193,8 @@ int main(int argc, char * argv[])
   // std::thread frameCapturing(updateFrameThread, camera, frame);
 
   while (rclcpp::ok()) {
-	      LOG(ERROR) << "spin start";
-
     tof_node->service_callback();
     rclcpp::spin_some(tof_node);
-        LOG(ERROR) << "Spin complete";
-
   }
 
   // frameCapturing.join();
